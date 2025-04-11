@@ -27,12 +27,16 @@ func NewClient() *Client {
 
 type GetScheduleOptions struct {
 	LeagueIDs []string
+	PageToken *string
 }
 
 func (c *Client) GetSchedule(ctx context.Context, opts GetScheduleOptions) (*Schedule, error) {
 	params := make(map[string]string)
 	for _, leagueID := range opts.LeagueIDs {
 		params["leagueId"] = strings.Join([]string{params["leagueID"], leagueID}, ",")
+	}
+	if opts.PageToken != nil {
+		params["pageToken"] = *opts.PageToken
 	}
 	req, err := newRequest(ctx, "getSchedule", params)
 	if err != nil {
