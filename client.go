@@ -30,14 +30,17 @@ type GetScheduleOptions struct {
 	PageToken *string
 }
 
-func (c *Client) GetSchedule(ctx context.Context, opts GetScheduleOptions) (*Schedule, error) {
-	params := make(map[string]string)
-	for _, leagueID := range opts.LeagueIDs {
-		params["leagueId"] = strings.Join([]string{params["leagueID"], leagueID}, ",")
+func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (*Schedule, error) {
+	params := map[string]string{}
+	if opts != nil {
+		for _, leagueID := range opts.LeagueIDs {
+			params["leagueId"] = strings.Join([]string{params["leagueID"], leagueID}, ",")
+		}
+		if opts.PageToken != nil {
+			params["pageToken"] = *opts.PageToken
+		}
 	}
-	if opts.PageToken != nil {
-		params["pageToken"] = *opts.PageToken
-	}
+
 	req, err := newRequest(ctx, "getSchedule", params)
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %w", err)
@@ -59,10 +62,12 @@ type GetSeasonsOptions struct {
 	ID *string
 }
 
-func (c *Client) GetSeasons(ctx context.Context, opts GetSeasonsOptions) ([]*Season, error) {
-	params := make(map[string]string)
-	if opts.ID != nil {
-		params["id"] = *opts.ID
+func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]*Season, error) {
+	params := map[string]string{}
+	if opts != nil {
+		if opts.ID != nil {
+			params["id"] = *opts.ID
+		}
 	}
 	req, err := newRequest(ctx, "getSeasons", params)
 	if err != nil {
@@ -102,6 +107,39 @@ func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]*S
 	return responseBody.Data.Standings, nil
 }
 
+func (c *Client) doRequest(req *http.Request, response any) error {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(response)
+	if err != nil {
+		return fmt.Errorf("could not decode the response body: %w", err)
+	}
+	return nil
+}
+
+func newRequest(ctx context.Context, endpoint string, params map[string]string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+	req.Header.Set(headerAPIKey, apiKey)
+	q := req.URL.Query()
+	q.Add("hl", "en-US")
+	for k, v := range params {
+		q.Add(k, v)
+	}
+	req.URL.RawQuery = q.Encode()
+	return req, nil
+}
+
 // func (c *Client) GetLeagues(ctx context.Context) ([]*League, error) {
 // 	req, err := newRequest(ctx, "getLeagues", nil)
 // 	if err != nil {
@@ -137,36 +175,3 @@ func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]*S
 // 	}
 // 	return responseBody.Data.Leagues[0].Tournaments, nil
 // }
-
-func (c *Client) doRequest(req *http.Request, response any) error {
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(response)
-	if err != nil {
-		return fmt.Errorf("could not decode the response body: %w", err)
-	}
-	return nil
-}
-
-func newRequest(ctx context.Context, endpoint string, params map[string]string) (*http.Request, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not create request: %w", err)
-	}
-	req.Header.Set(headerAPIKey, apiKey)
-	q := req.URL.Query()
-	q.Add("hl", "en-US")
-	for k, v := range params {
-		q.Add(k, v)
-	}
-	req.URL.RawQuery = q.Encode()
-	return req, nil
-}
