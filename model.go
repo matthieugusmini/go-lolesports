@@ -46,13 +46,13 @@ type Match struct {
 }
 
 type Team struct {
-	ID     string  `json:"id,omitempty"`
-	Slug   string  `json:"slug,omitempty"`
+	ID     string  `json:"id"`
+	Slug   string  `json:"slug"`
 	Name   string  `json:"name"`
 	Code   string  `json:"code"`
 	Image  string  `json:"image"`
-	Result *Result `json:"result,omitempty"`
-	Record *Record `json:"record,omitempty"`
+	Result *Result `json:"result"`
+	Record *Record `json:"record"`
 }
 
 type Result struct {
@@ -82,16 +82,16 @@ type Standings struct {
 
 type Stage struct {
 	ID       string    `json:"id"`
-	Name     string    `json:"name,omitempty"`
-	Type     string    `json:"type,omitempty"`
-	Slug     string    `json:"slug,omitempty"`
-	Sections []Section `json:"sections,omitempty"`
+	Name     string    `json:"name"`
+	Type     string    `json:"type"`
+	Slug     string    `json:"slug"`
+	Sections []Section `json:"sections"`
 }
 
 type Section struct {
 	Name     string    `json:"name"`
 	Matches  []Match   `json:"matches"`
-	Rankings []Ranking `json:"rankings,omitempty"`
+	Rankings []Ranking `json:"rankings"`
 }
 
 type Ranking struct {
@@ -100,24 +100,24 @@ type Ranking struct {
 }
 
 type Season struct {
-	ID          string
-	Description *string
-	StartTime   time.Time
-	EndTime     time.Time
-	Name        string
-	Slug        string
-	Splits      []*Split
+	ID          string    `json:"id"`
+	Description *string   `json:"description"`
+	StartTime   time.Time `json:"startTime"`
+	EndTime     time.Time `json:"endTime"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Splits      []Split   `json:"splits"`
 }
 
 type Split struct {
-	ID          string        `json:"id"`
-	Description *string       `json:"description"`
-	Name        string        `json:"name"`
-	Slug        string        `json:"slug"`
-	StartTime   time.Time     `json:"startTime"`
-	EndTime     time.Time     `json:"endTime"`
-	Region      string        `json:"region"`
-	Tournaments []*Tournament `json:"tournaments"`
+	ID          string       `json:"id"`
+	Description *string      `json:"description"`
+	Name        string       `json:"name"`
+	Slug        string       `json:"slug"`
+	StartTime   time.Time    `json:"startTime"`
+	EndTime     time.Time    `json:"endTime"`
+	Region      string       `json:"region"`
+	Tournaments []Tournament `json:"tournaments"`
 }
 
 type Tournament struct {

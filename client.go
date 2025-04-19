@@ -30,7 +30,7 @@ type GetScheduleOptions struct {
 	PageToken *string
 }
 
-func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (*Schedule, error) {
+func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (Schedule, error) {
 	params := map[string]string{}
 	if opts != nil {
 		for _, leagueID := range opts.LeagueIDs {
@@ -43,7 +43,7 @@ func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (*Sc
 
 	req, err := newRequest(ctx, "getSchedule", params)
 	if err != nil {
-		return nil, fmt.Errorf("could not create request: %w", err)
+		return Schedule{}, fmt.Errorf("could not create request: %w", err)
 	}
 
 	var responseData struct {
@@ -53,16 +53,16 @@ func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (*Sc
 	}
 	err = c.doRequest(req, &responseData)
 	if err != nil {
-		return nil, err
+		return Schedule{}, err
 	}
-	return &responseData.Data.Schedule, nil
+	return responseData.Data.Schedule, nil
 }
 
 type GetSeasonsOptions struct {
 	ID *string
 }
 
-func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]*Season, error) {
+func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]Season, error) {
 	params := map[string]string{}
 	if opts != nil {
 		if opts.ID != nil {
@@ -76,7 +76,7 @@ func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]*Se
 
 	var responseData struct {
 		Data struct {
-			Seasons []*Season `json:"seasons"`
+			Seasons []Season `json:"seasons"`
 		} `json:"data"`
 	}
 	err = c.doRequest(req, &responseData)
@@ -86,7 +86,7 @@ func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]*Se
 	return responseData.Data.Seasons, nil
 }
 
-func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]*Standings, error) {
+func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]Standings, error) {
 	params := map[string]string{
 		"tournamentId": strings.Join(tournamentIDs, ","),
 	}
@@ -97,7 +97,7 @@ func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]*S
 
 	var responseBody struct {
 		Data struct {
-			Standings []*Standings `json:"standings"`
+			Standings []Standings `json:"standings"`
 		} `json:"data"`
 	}
 	err = c.doRequest(req, &responseBody)
