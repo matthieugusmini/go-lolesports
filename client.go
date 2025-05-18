@@ -1,3 +1,7 @@
+// Package lolesports provides a client for interacting with the unofficial LoL Esports API.
+//
+// Note: This client relies on an unofficial API that could change or become unavailable at any time
+// if Riot Games modifies or discontinues their API or for any other reason.
 package lolesports
 
 import (
@@ -11,25 +15,59 @@ import (
 const (
 	baseURL = "https://esports-api.lolesports.com/persisted/gw/"
 
-	headerAPIKey = "X-Api-Key"
-	apiKey       = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"
+	headerAPIKey = "X-Api-Key" //nolint:gosec
+
+	//nolint:gosec
+	// apiKey is the key used by the official https://lolesports.com website.
+	// This is not a private API key.
+	apiKey = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z"
 )
 
+// ClientOption represents a functional option to customize a [Client].
+type ClientOption func(*Client)
+
+// WithHTTPClient sets the [Client] with  a custom [http.Client].
+func WithHTTPClient(httpClient *http.Client) ClientOption {
+	return func(c *Client) {
+		c.httpClient = httpClient
+	}
+}
+
+// Client fetches data from the unofficial LoL Esports API.
 type Client struct {
 	httpClient *http.Client
 }
 
-func NewClient() *Client {
-	return &Client{
+// NewClient returns a newly instanciated [Client].
+//
+// By default it uses the [http.DefaultClient] internally but
+// you can customize it using [ClientOption].
+func NewClient(opts ...ClientOption) *Client {
+	c := &Client{
 		httpClient: http.DefaultClient,
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
 }
 
+// GetScheduleOptions represents the options for fetching a schedule.
 type GetScheduleOptions struct {
+	// LeagueIDs is a list of league IDs used to filter the fetched events.
+	// When set, only events related to the specified leagues will be fetched.
 	LeagueIDs []string
+
+	// PageToken is a base64 encoded token that identifies a specific schedule page.
+	// This can be used to fetch a particular page of the schedule.
 	PageToken *string
 }
 
+// GetSchedule retrieves the LoL Esports schedule. Without any options set,
+// it retrieves the most recent events by default. You can use [GetScheduleOptions]
+// to customize your request.
 func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (Schedule, error) {
 	params := map[string]string{}
 	if opts != nil {
@@ -46,22 +84,26 @@ func (c *Client) GetSchedule(ctx context.Context, opts *GetScheduleOptions) (Sch
 		return Schedule{}, fmt.Errorf("could not create request: %w", err)
 	}
 
-	var responseData struct {
+	var responseBody struct {
 		Data struct {
 			Schedule Schedule `json:"schedule"`
 		} `json:"data"`
 	}
-	err = c.doRequest(req, &responseData)
+	err = c.doRequest(req, &responseBody)
 	if err != nil {
 		return Schedule{}, err
 	}
-	return responseData.Data.Schedule, nil
+	return responseBody.Data.Schedule, nil
 }
 
+// GetSeasonsOptions represents the options for fetching seasons.
 type GetSeasonsOptions struct {
+	// ID can be set to only retrieve a specific season.
 	ID *string
 }
 
+// GetSeasons fetches all LoL Esports seasons from the beginning of the records.
+// Optionally, you can use [GetSeasonsOptions] to request a specific season.
 func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]Season, error) {
 	params := map[string]string{}
 	if opts != nil {
@@ -74,18 +116,19 @@ func (c *Client) GetSeasons(ctx context.Context, opts *GetSeasonsOptions) ([]Sea
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
-	var responseData struct {
+	var responseBody struct {
 		Data struct {
 			Seasons []Season `json:"seasons"`
 		} `json:"data"`
 	}
-	err = c.doRequest(req, &responseData)
+	err = c.doRequest(req, &responseBody)
 	if err != nil {
 		return nil, err
 	}
-	return responseData.Data.Seasons, nil
+	return responseBody.Data.Seasons, nil
 }
 
+// GetStandings retrieves the standings for each tournament specified by the given tournament IDs.
 func (c *Client) GetStandings(ctx context.Context, tournamentIDs []string) ([]Standings, error) {
 	params := map[string]string{
 		"tournamentId": strings.Join(tournamentIDs, ","),
@@ -125,7 +168,11 @@ func (c *Client) doRequest(req *http.Request, response any) error {
 	return nil
 }
 
-func newRequest(ctx context.Context, endpoint string, params map[string]string) (*http.Request, error) {
+func newRequest(
+	ctx context.Context,
+	endpoint string,
+	params map[string]string,
+) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %w", err)
@@ -139,39 +186,3 @@ func newRequest(ctx context.Context, endpoint string, params map[string]string) 
 	req.URL.RawQuery = q.Encode()
 	return req, nil
 }
-
-// func (c *Client) GetLeagues(ctx context.Context) ([]*League, error) {
-// 	req, err := newRequest(ctx, "getLeagues", nil)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("could not create request: %w", err)
-// 	}
-//
-// 	var responseBody struct {
-// 		Data struct {
-// 			Leagues []*League `json:"leagues"`
-// 		} `json:"data"`
-// 	}
-// 	err = c.doRequest(req, &responseBody)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return responseBody.Data.Leagues, nil
-// }
-//
-// func (c *Client) GetTournamentsForLeague(ctx context.Context, leagueID string) ([]*Tournament, error) {
-// 	req, err := newRequest(ctx, "getTournamentsForLeague", map[string]string{"leagueId": leagueID})
-// 	if err != nil {
-// 		return nil, fmt.Errorf("could not create request: %w", err)
-// 	}
-//
-// 	var responseBody struct {
-// 		Data struct {
-// 			Leagues []*League `json:"leagues"`
-// 		} `json:"data"`
-// 	}
-// 	err = c.doRequest(req, &responseBody)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return responseBody.Data.Leagues[0].Tournaments, nil
-// }
